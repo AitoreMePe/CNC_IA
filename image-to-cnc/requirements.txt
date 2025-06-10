@@ -1,0 +1,9 @@
+torch
+torchvision
+numpy
+tqdm
+Pillow
+svgwrite
+svgpathtools
+scikit-learn
+cairosvg 

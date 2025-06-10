@@ -1,0 +1,28 @@
+# Entornos virtuales y caches de Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
+
+# Dependencias instaladas
+/lib/
+/lib64/
+
+# Archivos de modelo entrenado
+*.pth
+
+# Directorios de datos y salidas
+/datasets/
+/output/
+/image-to-cnc/output/
+
+# Archivos generados
+/manifest.json
+*.svg
+*.log
+
+# Archivos de configuración de IDEs
+.vscode/
+.idea/ 
