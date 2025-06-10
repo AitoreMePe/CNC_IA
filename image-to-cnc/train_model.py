@@ -10,18 +10,26 @@ from tqdm import tqdm
 import svgwrite
 from svgpathtools import svg2paths
 
+# --- CÁLCULO DE RUTAS DINÁMICO ---
+# Esto hace que el script sea robusto, sin importar desde dónde se ejecute.
+# Localiza la ruta del script actual.
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Sube un nivel para llegar a la raíz del proyecto (la carpeta 'CNC').
+project_root = os.path.dirname(script_dir)
+
+
 # --- CONFIGURACIÓN ---
 # Esta sección contendrá todos los hiperparámetros y configuraciones
 # para que sea fácil experimentar y ajustar el modelo.
 CONFIG = {
-    "manifest_path": "datasets/2_processed_data/manifest.json",
-    "base_dir": ".", # Directorio raíz del proyecto
+    "manifest_path": os.path.join(project_root, "manifest.json"),
+    "base_dir": project_root, # El directorio base para las imágenes es la raíz
     "epochs": 50,
     "batch_size": 2, # Reducido para imágenes más grandes
     "learning_rate": 0.001,
     "image_size": 1024, # Aumentado para alta resolución
     "validation_split": 0.1, # 10% de los datos para validación
-    "checkpoint_dir": "models/checkpoints",
+    "checkpoint_path": os.path.join(project_root, "best_model.pth"),
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     # Volvemos a activar los workers para aprovechar el Threadripper
     "num_workers": 8
@@ -240,15 +248,15 @@ if __name__ == '__main__':
     device = CONFIG['device']
     print(f"Usando dispositivo: {device}")
     
-    os.makedirs(CONFIG["checkpoint_dir"], exist_ok=True)
-    
     with open(CONFIG["manifest_path"], 'r') as f:
         manifest = json.load(f)
         
+    # Eliminamos el filtro para usar TODOS los datos del manifiesto.
+    # ¡Esto es clave para un buen entrenamiento!
     trainable_manifest = [
-        m for m in manifest 
-        if m.get('output_vector_path') and m['source_dataset'] in ['user_generated', 'sketchbench']
+        m for m in manifest if m.get('output_vector_path')
     ]
+        
     print(f"Encontradas {len(trainable_manifest)} muestras entrenables.")
 
     split_idx = int(len(trainable_manifest) * (1 - CONFIG["validation_split"]))
@@ -270,17 +278,19 @@ if __name__ == '__main__':
     best_val_loss = float('inf')
 
     print("\n--- ¡Comenzando Bucle de Entrenamiento! ---\n")
-    for epoch in range(CONFIG['epochs']):
-        print(f"\n--- Epoch {epoch+1}/{CONFIG['epochs']} ---")
+    for epoch in range(1, CONFIG["epochs"] + 1):
+        print(f"\n--- Epoch {epoch}/{CONFIG['epochs']} ---")
+        
         train_loss = train_model(model, train_loader, criterion, optimizer, device)
         val_loss = validate_model(model, val_loader, criterion, device)
         
-        print(f"Epoch {epoch+1} -> Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-
+        print(f"Epoch {epoch} -> Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        
+        # Guardar el mejor modelo
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            checkpoint_path = os.path.join(CONFIG["checkpoint_dir"], "best_model.pth")
-            torch.save(model.state_dict(), checkpoint_path)
-            print(f"Nuevo mejor modelo guardado en {checkpoint_path} (Val Loss: {best_val_loss:.4f})")
-        
-    print("--- Entrenamiento Completado ---") 
+            torch.save(model.state_dict(), CONFIG["checkpoint_path"])
+            print(f"Nuevo mejor modelo guardado en {CONFIG['checkpoint_path']} (Val Loss: {val_loss:.4f})")
+            
+    print("\n--- ¡Entrenamiento completado! ---")
+    print(f"El mejor modelo se ha guardado en: {CONFIG['checkpoint_path']}") 

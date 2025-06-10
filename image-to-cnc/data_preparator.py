@@ -282,31 +282,31 @@ def process_quickdraw_data(output_path):
 
 def main():
     """
-    Función principal que orquesta todo el proceso de preparación de datos.
+    Función principal que orquesta todo el proceso de preparación.
     """
-    print("Iniciando la preparación del dataset...")
+    print("--- Iniciando la preparación del dataset ---")
     
-    # Asegurarse de que el directorio de salida exista
+    # Creamos el directorio de salida si no existe.
     os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
     
-    full_manifest = []
+    # Procesamos cada dataset, esta vez activando todos.
+    user_manifest = process_user_generated_data(PROCESSED_DATA_DIR)
+    sketchbench_manifest = process_sketchbench_data(PROCESSED_DATA_DIR)
+    sketchy_manifest = process_sketchy_data(PROCESSED_DATA_DIR) 
+    quickdraw_manifest = process_quickdraw_data(PROCESSED_DATA_DIR)
+
+    # Combinamos todos los manifiestos en uno solo
+    full_manifest = user_manifest + sketchbench_manifest + sketchy_manifest + quickdraw_manifest
     
-    # Procesar cada fuente de datos
-    full_manifest.extend(process_user_generated_data(PROCESSED_DATA_DIR))
-    full_manifest.extend(process_sketchbench_data(PROCESSED_DATA_DIR))
-    full_manifest.extend(process_sketchy_data(PROCESSED_DATA_DIR))
-    full_manifest.extend(process_quickdraw_data(PROCESSED_DATA_DIR))
+    # Guardamos el manifiesto final en la raíz del proyecto
+    manifest_path = os.path.join(BASE_DIR, "manifest.json")
     
-    # Guardar el manifiesto final
-    manifest_path = os.path.join(PROCESSED_DATA_DIR, "manifest.json")
     with open(manifest_path, 'w') as f:
         json.dump(full_manifest, f, indent=4)
         
-    print("-" * 50)
-    print(f"¡Proceso completado!")
-    print(f"Se ha creado el manifiesto en: {manifest_path}")
+    print(f"\n--- Proceso completado ---")
+    print(f"Manifiesto final creado en: {manifest_path}")
     print(f"Total de muestras procesadas: {len(full_manifest)}")
-    print("-" * 50)
 
 
 if __name__ == "__main__":
